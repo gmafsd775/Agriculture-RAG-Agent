@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AgriAssist AI | Agriculture RAG Agent</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary-green: #2E7D32;
+      --secondary-green: #4CAF50;
+      --light-green: #E8F5E9;
+      --dark-green: #1B5E20;
+      --earth-brown: #8D6E63;
+      --sun-yellow: #FFB300;
+      --sky-blue: #2196F3;
+      --white: #FFFFFF;
+      --gray-light: #F5F5F5;
+      --gray-medium: #757575;
+      --gray-dark: #424242;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, #f5f7fa 0%, #E8F5E9 100%);
+      min-height: 100vh;
+      color: var(--gray-dark);
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(46, 125, 50, 0.05) 0%, transparent 20%),
+        radial-gradient(circle at 90% 80%, rgba(76, 175, 80, 0.05) 0%, transparent 20%);
+    }
+
+    .app-container {
+      display: flex;
+      max-width: 1400px;
+      margin: 0 auto;
+      min-height: 100vh;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+      background: var(--white);
+      border-radius: 0;
+      overflow: hidden;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 280px;
+      background: linear-gradient(180deg, var(--dark-green) 0%, var(--primary-green) 100%);
+      color: var(--white);
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .logo-area {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 2rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .logo-icon {
+      width: 42px;
+      height: 42px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+    }
+
+    .logo-text h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .logo-text p {
+      font-size: 0.8rem;
+      opacity: 0.9;
+      font-weight: 300;
+    }
+
+    .quick-queries {
+      margin-top: 1.5rem;
+      flex-grow: 1;
+    }
+
+    .quick-queries h3 {
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 1rem;
+      opacity: 0.9;
+      font-weight: 600;
+    }
+
+    .query-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      width: 100%;
+      padding: 0.85rem 1rem;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--white);
+      border-radius: 10px;
+      margin-bottom: 0.75rem;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      text-align: left;
+      font-size: 0.9rem;
+    }
+
+    .query-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      transform: translateX(5px);
+    }
+
+    .query-btn i {
+      font-size: 0.9rem;
+      opacity: 0.8;
+    }
+
+    .stats {
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 1rem;
+      margin-top: auto;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .stat-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+      font-size: 0.85rem;
+    }
+
+    .stat-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .stat-value {
+      font-weight: 600;
+    }
+
+    /* Main Chat Area */
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--white);
+    }
+
+    .chat-header {
+      padding: 1.5rem 2rem;
+      border-bottom: 1px solid var(--gray-light);
+      background: var(--white);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .chat-header h2 {
+      color: var(--dark-green);
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    .doc-info {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    .doc-badge {
+      background: var(--light-green);
+      color: var(--dark-green);
+      padding: 0.4rem 0.8rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .chat-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 0;
+      overflow: hidden;
+    }
+
+    .chat-messages {
+      flex: 1;
+      padding: 2rem;
+      overflow-y: auto;
+      background: var(--white);
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .message {
+      max-width: 80%;
+      display: flex;
+      gap: 1rem;
+      animation: fadeInUp 0.3s ease;
+    }
+
+    .message.user {
+      align-self: flex-end;
+      flex-direction: row-reverse;
+    }
+
+    .message.ai {
+      align-self: flex-start;
+    }
+
+    .avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      flex-shrink: 0;
+    }
+
+    .user .avatar {
+      background: linear-gradient(135deg, var(--sky-blue), #1976D2);
+      color: white;
+    }
+
+    .ai .avatar {
+      background: linear-gradient(135deg, var(--secondary-green), var(--primary-green));
+      color: white;
+    }
+
+    .message-content {
+      padding: 1rem 1.25rem;
+      border-radius: 18px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      position: relative;
+      line-height: 1.5;
+    }
+
+    .user .message-content {
+      background: linear-gradient(135deg, var(--sky-blue), #1976D2);
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+
+    .ai .message-content {
+      background: var(--light-green);
+      color: var(--gray-dark);
+      border: 1px solid rgba(76, 175, 80, 0.1);
+      border-bottom-left-radius: 4px;
+    }
+
+    .message-time {
+      font-size: 0.7rem;
+      opacity: 0.7;
+      margin-top: 0.4rem;
+      display: block;
+    }
+
+    .ai .message-time {
+      text-align: left;
+      color: var(--gray-medium);
+    }
+
+    .user .message-time {
+      text-align: right;
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .sources {
+      margin-top: 1rem;
+      padding: 0.75rem;
+      background: rgba(255, 255, 255, 0.7);
+      border-radius: 8px;
+      border-left: 3px solid var(--secondary-green);
+    }
+
+    .sources-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--dark-green);
+      margin-bottom: 0.4rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .source-item {
+      font-size: 0.8rem;
+      color: var(--gray-medium);
+      margin-bottom: 0.25rem;
+      padding-left: 0.5rem;
+    }
+
+    .source-item:before {
+      content: "•";
+      margin-right: 0.5rem;
+      color: var(--secondary-green);
+    }
+
+    .input-area {
+      padding: 1.5rem 2rem;
+      border-top: 1px solid var(--gray-light);
+      background: var(--white);
+    }
+
+    .input-wrapper {
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-end;
+    }
+
+    .input-box {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .input-box textarea {
+      width: 100%;
+      padding: 1rem 1.25rem;
+      border: 1px solid #E0E0E0;
+      border-radius: 14px;
+      font-size: 1rem;
+      font-family: 'Inter', sans-serif;
+      resize: none;
+      min-height: 56px;
+      max-height: 120px;
+      outline: none;
+      transition: all 0.25s ease;
+      background: var(--white);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    }
+
+    .input-box textarea:focus {
+      border-color: var(--secondary-green);
+      box-shadow: 0 4px 12px rgba(76, 175, 80, 0.15);
+    }
+
+    .input-hints {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .hint-btn {
+      background: var(--gray-light);
+      border: none;
+      border-radius: 12px;
+      padding: 0.4rem 0.75rem;
+      font-size: 0.8rem;
+      color: var(--gray-medium);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .hint-btn:hover {
+      background: var(--light-green);
+      color: var(--dark-green);
+    }
+
+    .send-btn {
+      background: linear-gradient(135deg, var(--secondary-green), var(--primary-green));
+      color: white;
+      border: none;
+      border-radius: 12px;
+      width: 56px;
+      height: 56px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      transition: all 0.25s ease;
+      box-shadow: 0 4px 12px rgba(46, 125, 50, 0.2);
+    }
+
+    .send-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(46, 125, 50, 0.3);
+    }
+
+    .send-btn:active {
+      transform: scale(0.96);
+    }
+
+    .send-btn.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Typing Indicator */
+    .typing-indicator {
+      display: flex;
+      gap: 0.5rem;
+      padding: 1.25rem;
+      background: var(--light-green);
+      border-radius: 18px;
+      width: fit-content;
+      align-items: center;
+      border: 1px solid rgba(76, 175, 80, 0.1);
+    }
+
+    .typing-text {
+      font-size: 0.9rem;
+      color: var(--gray-medium);
+      font-weight: 500;
+    }
+
+    .typing-dots {
+      display: flex;
+      gap: 0.25rem;
+    }
+
+    .typing-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--secondary-green);
+      border-radius: 50%;
+      animation: bounce 1.4s infinite ease-in-out both;
+    }
+
+    .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+    .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+    @keyframes bounce {
+      0%, 80%, 100% { transform: scale(0); }
+      40% { transform: scale(1); }
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .app-container {
+        flex-direction: column;
+        min-height: 100vh;
+      }
+      
+      .sidebar {
+        width: 100%;
+        padding: 1rem;
+      }
+      
+      .chat-header {
+        padding: 1rem;
+      }
+      
+      .chat-messages {
+        padding: 1rem;
+      }
+      
+      .message {
+        max-width: 90%;
+      }
+      
+      .input-area {
+        padding: 1rem;
+      }
+    }
+
+    /* Welcome Message */
+    .welcome-message {
+      text-align: center;
+      padding: 2rem;
+      background: linear-gradient(135deg, rgba(76, 175, 80, 0.05), rgba(46, 125, 50, 0.05));
+      border-radius: 16px;
+      margin: 1rem 0;
+      border: 1px solid rgba(76, 175, 80, 0.1);
+    }
+
+    .welcome-icon {
+      font-size: 3rem;
+      color: var(--secondary-green);
+      margin-bottom: 1rem;
+    }
+
+    .welcome-title {
+      font-size: 1.5rem;
+      color: var(--dark-green);
+      margin-bottom: 0.5rem;
+      font-weight: 700;
+    }
+
+    .welcome-subtitle {
+      color: var(--gray-medium);
+      margin-bottom: 1.5rem;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .welcome-features {
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+      margin-top: 1.5rem;
+    }
+
+    .feature {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+      color: var(--gray-medium);
+    }
+
+    .feature i {
+      color: var(--secondary-green);
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="logo-area">
+        <div class="logo-icon">
+          <i class="fas fa-seedling"></i>
+        </div>
+        <div class="logo-text">
+          <h1>AgriAssist AI</h1>
+          <p>Agriculture RAG Agent</p>
+        </div>
+      </div>
+
+      <div class="quick-queries">
+        <h3><i class="fas fa-bolt"></i> Quick Queries</h3>
+        <button class="query-btn" onclick="quickQuery(this)">
+          <i class="fas fa-tint"></i>
+          <span>Optimal irrigation for wheat crop</span>
+        </button>
+        <button class="query-btn" onclick="quickQuery(this)">
+          <i class="fas fa-bug"></i>
+          <span>Pest control for tomato plants</span>
+        </button>
+        <button class="query-btn" onclick="quickQuery(this)">
+          <i class="fas fa-chart-line"></i>
+          <span>Fertilizer recommendations for rice</span>
+        </button>
+        <button class="query-btn" onclick="quickQuery(this)">
+          <i class="fas fa-cloud-sun"></i>
+          <span>Weather impact on maize yield</span>
+        </button>
+        <button class="query-btn" onclick="quickQuery(this)">
+          <i class="fas fa-leaf"></i>
+          <span>Organic farming best practices</span>
+        </button>
+      </div>
+
+      <div class="stats">
+        <div class="stat-item">
+          <span>Documents Loaded</span>
+          <span class="stat-value">24</span>
+        </div>
+        <div class="stat-item">
+          <span>Agriculture Topics</span>
+          <span class="stat-value">18</span>
+        </div>
+        <div class="stat-item">
+          <span>Response Accuracy</span>
+          <span class="stat-value">94%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Chat Area -->
+    <div class="main-content">
+      <div class="chat-header">
+        <h2><i class="fas fa-comments"></i> Agriculture Assistant</h2>
+        <div class="doc-info">
+          <div class="doc-badge">
+            <i class="fas fa-book"></i>
+            <span>24 Agriculture Docs</span>
+          </div>
+          <div class="doc-badge">
+            <i class="fas fa-database"></i>
+            <span>Vector DB Active</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-container">
+        <div class="chat-messages" id="chatMessages">
+          <!-- Welcome Message -->
+          <div class="welcome-message">
+            <div class="welcome-icon">
+              <i class="fas fa-tractor"></i>
+            </div>
+            <h2 class="welcome-title">Welcome to AgriAssist AI</h2>
+            <p class="welcome-subtitle">
+              Your intelligent agriculture assistant powered by RAG technology. 
+              Ask questions about crop management, pest control, soil health, weather impact, 
+              and modern farming techniques.
+            </p>
+            <div class="welcome-features">
+              <div class="feature">
+                <i class="fas fa-check-circle"></i>
+                <span>Expert Knowledge Base</span>
+              </div>
+              <div class="feature">
+                <i class="fas fa-check-circle"></i>
+                <span>Source References</span>
+              </div>
+              <div class="feature">
+                <i class="fas fa-check-circle"></i>
+                <span>Real-time Analysis</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="input-area">
+          <div class="input-wrapper">
+            <div class="input-box">
+              <textarea 
+                id="userInput" 
+                placeholder="Ask about agriculture... (e.g., How to improve soil fertility?)" 
+                rows="1"
+                onkeydown="handleKeyPress(event)"
+                oninput="autoResize(this)"
+              ></textarea>
+              <div class="input-hints">
+                <button class="hint-btn" onclick="quickHint(this)">Crop rotation</button>
+                <button class="hint-btn" onclick="quickHint(this)">Water management</button>
+                <button class="hint-btn" onclick="quickHint(this)">Harvest timing</button>
+                <button class="hint-btn" onclick="quickHint(this)">Soil pH levels</button>
+              </div>
+            </div>
+            <button class="send-btn" id="sendButton" onclick="sendMessage()">
+              <i class="fas fa-paper-plane"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const WEBHOOK_URL = "https://vmi2915475.contaboserver.net/webhook/trigger";
+    let isProcessing = false;
+
+    function autoResize(textarea) {
+      textarea.style.height = 'auto';
+      textarea.style.height = (textarea.scrollHeight) + 'px';
+      textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+    }
+
+    function handleKeyPress(event) {
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        sendMessage();
+      }
+    }
+
+    function quickQuery(button) {
+      const query = button.querySelector('span').textContent;
+      document.getElementById('userInput').value = query;
+      sendMessage();
+    }
+
+    function quickHint(button) {
+      const hint = button.textContent;
+      const input = document.getElementById('userInput');
+      input.value = hint;
+      input.focus();
+    }
+
+    function formatResponse(text) {
+      // Convert markdown-like formatting to HTML
+      return text
+        .replace(/\\n/g, '\n')
+        .replace(/\n/g, '<br>')
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/### (.*?)(\n|$)/g, '<h3>$1</h3>')
+        .replace(/## (.*?)(\n|$)/g, '<h3 style="font-size: 1.1rem;">$1</h3>')
+        .replace(/# (.*?)(\n|$)/g, '<h2 style="font-size: 1.2rem;">$1</h2>')
+        .replace(/`(.*?)`/g, '<code>$1</code>')
+        .replace(/- (.*?)(\n|$)/g, '<li>$1</li>')
+        .replace(/(<li>.*?<\/li>)+/g, '<ul>$&</ul>')
+        .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank">$1</a>');
+    }
+
+    function addMessage(content, isUser = false, sources = null) {
+      const chatMessages = document.getElementById('chatMessages');
+      const welcomeMsg = chatMessages.querySelector('.welcome-message');
+      if (welcomeMsg) {
+        welcomeMsg.style.display = 'none';
+      }
+
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `message ${isUser ? 'user' : 'ai'}`;
+      
+      const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      
+      const avatarIcon = isUser ? '<i class="fas fa-user"></i>' : '<i class="fas fa-robot"></i>';
+      
+      let contentHTML = formatResponse(content);
+      
+      let sourcesHTML = '';
+      if (sources && !isUser) {
+        sourcesHTML = `
+          <div class="sources">
+            <div class="sources-title">
+              <i class="fas fa-file-alt"></i>
+              Sources Referenced
+            </div>
+            ${sources.map(source => `<div class="source-item">${source}</div>`).join('')}
+          </div>
+        `;
+      }
+      
+      messageDiv.innerHTML = `
+        <div class="avatar">${avatarIcon}</div>
+        <div class="message-content">
+          ${contentHTML}
+          <span class="message-time">${time}</span>
+          ${sourcesHTML}
+        </div>
+      `;
+      
+      chatMessages.appendChild(messageDiv);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function showTypingIndicator() {
+      const chatMessages = document.getElementById('chatMessages');
+      const typingDiv = document.createElement('div');
+      typingDiv.className = 'message ai';
+      typingDiv.innerHTML = `
+        <div class="avatar">
+          <i class="fas fa-robot"></i>
+        </div>
+        <div class="typing-indicator">
+          <div class="typing-text">AgriAssist is thinking</div>
+          <div class="typing-dots">
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+          </div>
+        </div>
+      `;
+      typingDiv.id = 'typingIndicator';
+      chatMessages.appendChild(typingDiv);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function hideTypingIndicator() {
+      const typingIndicator = document.getElementById('typingIndicator');
+      if (typingIndicator) {
+        typingIndicator.remove();
+      }
+    }
+
+    async function sendMessage() {
+      if (isProcessing) return;
+      
+      const input = document.getElementById('userInput');
+      const message = input.value.trim();
+      const sendButton = document.getElementById('sendButton');
+      
+      if (!message) return;
+      
+      isProcessing = true;
+      sendButton.classList.add('disabled');
+      
+      // Add user message
+      addMessage(message, true);
+      
+      // Clear input
+      input.value = '';
+      input.style.height = 'auto';
+      
+      // Show typing indicator
+      showTypingIndicator();
+      
+      try {
+        const response = await fetch(WEBHOOK_URL, {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ 
+            message: message,
+            timestamp: new Date().toISOString()
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Server returned ${response.status}`);
+        }
+
+        const data = await response.json();
+        hideTypingIndicator();
+        
+        // Extract response from array format
+        let aiResponse = "";
+        if (Array.isArray(data) && data[0] && data[0].reply) {
+          aiResponse = data[0].reply;
+        } else if (data.reply) {
+          aiResponse = data.reply;
+        } else {
+          aiResponse = JSON.stringify(data);
+        }
+        
+        // Simulate sources (you would get these from your RAG system)
+        const sampleSources = [
+          "FAO Agriculture Manual 2023",
+          "Crop Management Handbook",
+          "Soil Health Research Paper"
+        ];
+        
+        // Add AI response
+        addMessage(aiResponse, false, sampleSources);
+
+      } catch (error) {
+        console.error("Error:", error);
+        hideTypingIndicator();
+        addMessage("❌ Unable to connect to the agriculture knowledge base. Please check your connection and try again.", false);
+      } finally {
+        isProcessing = false;
+        sendButton.classList.remove('disabled');
+        input.focus();
+      }
+    }
+
+    // Initialize with focus on input
+    window.onload = function() {
+      document.getElementById('userInput').focus();
+    };
+  </script>
+</body>
+</html>
