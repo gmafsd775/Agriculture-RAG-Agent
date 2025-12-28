@@ -24,6 +24,7 @@ All documents organized in one place
 Consistent advice for everyone
 
 #🚀 Quick Overview
+
 What It Does:
 Reads your agriculture documents (PDFs, guides, reports)
 
@@ -34,5 +35,6 @@ Finds exact information from hundreds of pages
 Gives clear answers with sources
 
 #Example Questions It Can Answer:
+
 "Fertilizer recommendations for rice"
 
